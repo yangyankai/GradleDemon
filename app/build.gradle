@@ -1,0 +1,151 @@
+apply plugin: 'com.android.application'
+
+android {
+    // 打包渠道List
+    productFlavors {
+        wandoujia {
+            manifestPlaceholders = [APP_CHANNEL_VALUE: "豌豆荚"]
+        }
+        cn360 {
+            manifestPlaceholders = [APP_CHANNEL_VALUE: "360"]
+        }
+        baidu {
+            manifestPlaceholders = [APP_CHANNEL_VALUE: "百度"]
+        }
+        tencent {
+            manifestPlaceholders = [APP_CHANNEL_VALUE: "应用宝"]
+        }
+        sougou {
+            manifestPlaceholders = [APP_CHANNEL_VALUE: "搜狗市场"]
+        }
+    }
+/**  或者这样
+    // 打包渠道List
+    productFlavors {
+        wandoujia {}
+        cn360 {}
+        baidu {}
+        tencent {}
+        sougou {}
+    }
+
+    // 批量处理，直接使用flavor的name作为APP_CHANNEL_VALUE的值
+    productFlavors.all { flavor ->
+        flavor.manifestPlaceholders = [APP_CHANNEL_VALUE: name]
+    }
+*/
+
+
+
+
+
+
+
+    compileSdkVersion 23
+    buildToolsVersion "23.0.1"
+
+    defaultConfig {
+        applicationId "com.mp4.gradledemon"
+        minSdkVersion 15
+        targetSdkVersion 23
+        versionCode 1
+        versionName "1.0"
+
+        // dex突破65535限制
+        multiDexEnabled true
+        // 默认打包渠道（官方）
+        manifestPlaceholders = [APP_CHANNEL_VALUE: "官方"]
+    }
+
+    lintOptions {
+        abortOnError false
+    }
+
+    //签名信息
+    signingConfigs {
+        debug{
+            storeFile file(STORE_FILE)
+            storePassword STORE_PASSWORD
+            keyPassword KEY_PASSWORD
+            keyAlias KEY_ALIAS
+        }
+
+        release {
+            storeFile file(STORE_FILE)
+            storePassword STORE_PASSWORD
+            keyPassword KEY_PASSWORD
+            keyAlias KEY_ALIAS
+        }
+    }
+
+    buildTypes {
+        //Debug模式
+        debug {
+            // 显示LOG，在java代码中的调用方式为：BuildConfig.LOG_DEBUG，AS工具可以在BuildConfig.java中新增这个字段，如果还要兼容使用eclipse，不建议使用新增字段，因为eclipse在clean后会重新生成BuildConfig.java（默认使用BuildConfig.DEBUG能满足需要就不要特殊处理了）
+            //buildConfigField "boolean", "LOG_DEBUG", "true"
+
+            versionNameSuffix "-debug"
+            // 不开启混淆
+            minifyEnabled false
+            // 不需要ZIP优化
+            zipAlignEnabled false
+            // 不需要资源压缩
+            shrinkResources false
+            // signingConfig
+            signingConfig signingConfigs.debug
+        }
+
+        //Release模式
+        release {
+            // 不显示LOG
+            //buildConfigField "boolean", "LOG_DEBUG", "true"
+
+            minifyEnabled true
+            zipAlignEnabled true
+            // 资源压缩，移除无用的资源文件
+            shrinkResources true
+            // 混淆文件配置
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            // 签名信息配置（如果上面配置了defaultConfig则可以不用指定signingConfig）
+            signingConfig signingConfigs.release
+
+            applicationVariants.all { variant ->
+                variant.outputs.each { output ->
+                    def outputFile = output.outputFile
+                    if (outputFile != null && outputFile.name.endsWith('.apk')) {
+                        // 输出apk名称为myandroid_v1.0.0_2015-12-30_baidu.apk
+                        def fileName = "myandroid_v${defaultConfig.versionName}_${releaseTime()}_${variant.productFlavors[0].name}.apk"
+                        output.outputFile = new File(outputFile.parent, fileName)
+                    }
+                }
+            }
+        }
+    }
+}
+
+
+dependencies {
+    compile fileTree(dir: 'libs', include: ['*.jar'])
+    testCompile 'junit:junit:4.12'
+    compile 'com.android.support:appcompat-v7:23.1.0'
+}
+
+
+// 声明一个方法，获取打包时间
+def releaseTime() {
+    return new Date().format("yyyy-MM-dd", TimeZone.getTimeZone("UTC"))
+}
+
+
+/**
+ gradlew assembleDebug    //所有Debug版本
+ gradlew assembleRelease  //所有Release版本
+ gradlew assembleBaidu    //指定渠道的Debug和Release版本
+ gradlew assembleBaiduDebug   //指定渠道的Debug版本
+ gradlew assembleBaiduRelease //指定渠道的Release版本
+ gradlew build    //所有渠道的Debug和Release版本
+
+ 完成后，到build/outputs/apk中就可以看到各种渠道包。
+ *
+ *
+ */
